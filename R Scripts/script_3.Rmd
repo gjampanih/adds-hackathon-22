@@ -1,0 +1,118 @@
+---
+title: "hackathon_prep_6.27.22"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+```{r cars, message=FALSE, warning=FALSE, include=FALSE}
+## load packages
+library(tidyverse)
+library(tuneR)
+library(audio)
+library(plotly)
+library(oce)
+library(fftw)
+library(cowplot)
+library(dplyr)
+
+# Load Audio Data and Prep
+getwd()
+data1 <- tuneR::readWave('/Users/katwilson/Desktop/test_files/KDGE_2_glitch_SNR-6.wav') %>%
+  tuneR::normalize(unit = c("1"), center = FALSE, rescale = FALSE)
+data2 <- tuneR::readWave('/Users/katwilson/Desktop/test_files/KDGE_10_static_SNR12.wav') %>%
+  tuneR::normalize(unit = c("1"), center = FALSE, rescale = FALSE)
+data3 <- tuneR::readWave('/Users/katwilson/Desktop/test_files/KDGE_12_buzz_SNR12.wav') %>%
+  tuneR::normalize(unit = c("1"), center = FALSE, rescale = FALSE)
+
+```
+
+
+
+```{r}
+library(tuneR)
+# define path to audio file
+fin = '/Users/katwilson/Desktop/test_files/KDGE_2_glitch_SNR-6.wav'
+fin = '/Users/katwilson/Desktop/test_files/KDGE_10_static_SNR12.wav'
+fin = '/Users/katwilson/Desktop/test_files/KDGE_12_buzz_SNR12.wav'
+vec<- c('/Users/katwilson/Desktop/test_files/KDGE_2_glitch_SNR-6.wav',
+        '/Users/katwilson/Desktop/test_files/KDGE_10_static_SNR12.wav',
+        '/Users/katwilson/Desktop/test_files/KDGE_10_static_SNR12.wav')
+for (i in 1:length(vec)){
+fin = vec[i]
+title<- as.character(fin)
+title2<- gsub("/Users/katwilson/Desktop/test_files/", "", title) 
+# read in audio file
+data = readWave(fin)
+
+# extract signal
+snd = data@left
+
+# determine duration
+dur = length(snd)/data@samp.rate
+dur # seconds
+## [1] 3.588
+
+# determine sample rate
+fs = data@samp.rate
+fs # Hz
+## [1] 2000
+
+# demean to remove DC offset
+snd = snd - mean(snd)
+
+
+# number of points to use for the fft
+nfft=1024
+
+# window size (in points)
+window=256
+
+# overlap (in points)
+overlap=128
+
+library(signal, warn.conflicts = F, quietly = T) # signal processing functions
+library(oce, warn.conflicts = F, quietly = T) # image plotting functions and nice color maps
+
+# create spectrogram
+spec = specgram(x = snd,
+                n = nfft,
+                Fs = fs,
+                window = window,
+                overlap = overlap
+)
+
+# discard phase information
+P = abs(spec$S)
+
+# normalize
+P = P/max(P)
+
+# convert to dB
+P = 10*log10(P)
+
+# config time axis
+t = spec$t
+
+# plot spectrogram
+imagep(x = t,
+       y = spec$f,
+       z = t(P),
+       col = oce.colorsViridis,
+       ylab = 'Frequency [Hz]',
+       xlab = 'Time [s]',
+       drawPalette = T,
+       decimate = F,
+       main = as.character(title2)
+)
+
+}
+
+
+```

@@ -1,0 +1,112 @@
+---
+title: "Audio Anomaly Exploration"
+subtitle: "Notorious BIG Data Hackathon 2022"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(tuneR)
+library(audio)
+library(plotly)
+library(oce)
+library(fftw)
+library(cowplot)
+library(dplyr)
+library(seewave)
+library(reshape2)
+
+
+
+wav = readWave("KDGE_52_inf.wav")
+
+
+get_wav <- function(wave) {
+  
+wav = readWave(wave) 
+
+ss = spectro(wav, plot = F)
+mm =
+  melt(ss$amp, value.name = "Amplitude") %>%
+  dplyr::select(FrequencyIndex = Var1, TimeIndex = Var2, Amplitude)
+ff =
+  melt(ss$freq, value.name = "Frequency") %>%
+  dplyr::mutate(FrequencyIndex = row_number(), Frequency = Frequency * 1000)
+tt =
+  melt(ss$time, value.name = "Time") %>%
+  dplyr::mutate(TimeIndex = row_number())
+sp =
+  mm %>%
+  dplyr::left_join(ff, by = "FrequencyIndex") %>%
+  dplyr::left_join(tt, by = "TimeIndex") %>%
+  dplyr::select(Time, Frequency, Amplitude)
+
+return(sp)
+}
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Normal Audio Amplitude
+
+```{r}
+w1 <- get_wav("KDGE_52_inf.wav")
+
+ggplot(data = w1, mapping = aes(x = Time, y = Amplitude)) +
+  geom_line(color = 'blue') +
+  labs(x = "time (s)", y = "amplitude", title = 'Speech Waveform') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Audio Popping Amplitude Sample
+
+```{r}
+
+w2 <- get_wav("KDGE_51_popping.wav")
+
+ggplot(w2, mapping = aes(x = Time, y = Amplitude)) +
+  geom_line(color = 'red') +
+  labs(x = "time (s)", y = "amplitude", title = 'Speech Waveform') +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+### Audio Noise Amplitude Sample
+
+```{r}
+
+w3 <- get_wav("KDGE_149_noise_atten0.1.wav")
+
+
+ggplot(w3, mapping = aes(x = Time, y = Amplitude)) +
+  geom_line(color = 'green') +
+  labs(x = "time (s)", y = "amplitude", title = 'Speech Waveform') +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+
+### Audio Echo Amplitude Sample
+
+```{r}
+
+w4 <- get_wav("KDGE_8_echo_atten0.3.wav")
+
+ggplot(w4, mapping = aes(x = Time, y = Amplitude)) +
+  geom_line(color = 'orange') +
+  labs(x = "time (s)", y = "amplitude", title = 'Speech Waveform') +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
